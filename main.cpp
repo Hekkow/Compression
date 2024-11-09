@@ -10,28 +10,29 @@
 using namespace std;
 
 char keyDivider = '|';
-char strDivider = '>';
-unordered_map<int, tuple<int, char>> compress(string fileName);
+char equals = '=';
+char comma = ',';
+
+map<int, tuple<int, char>> compress(string fileName);
 void decompress(string fileName);
-void decompress();
 string printMap();
 string followPath(int index);
+string fileNameWithoutExtension(string fileName);
 int isInMap(string str);
 int main() {
     // decompress("compressed.ctxt");
     compress("test.txt");
-    // decompress();
+    decompress("test.compro");
     return 0;
 }
-unordered_map<int, tuple<int, char>> m;
+map<int, tuple<int, char>> m;
 unordered_map<string, int> mStrings;
-unordered_map<int, tuple<int, char>> compress(string fileName) {
+map<int, tuple<int, char>> compress(string fileName) {
     ifstream f(fileName);
     if (!f.is_open()) {
         cout << "Error opening file" << endl;
-        return unordered_map<int, tuple<int, char>>();
+        return map<int, tuple<int, char>>();
     }
-
     char ch;
     string str;
     int indexInMap = 0;
@@ -61,9 +62,17 @@ unordered_map<int, tuple<int, char>> compress(string fileName) {
     cout << "Total time: " << elapsedTime.count() << endl;
     // printMap(m);
     f.close();
-    ofstream outF("testCompressed.ctxt");
+
+
+    ofstream outF(fileNameWithoutExtension(fileName) + ".compro");
     outF << printMap();
     return m;
+}
+string fileNameWithoutExtension(string fileName) {
+    string newFileName = fileName;
+    size_t lastPeriodPosition = fileName.find_last_of('.');
+    if (lastPeriodPosition != string::npos) newFileName = fileName.substr(0, lastPeriodPosition);
+    return newFileName;
 }
 int isInMap(string str) {
     auto it = mStrings.find(str);
@@ -82,24 +91,64 @@ string followPath(int index) {
     return str;
 }
 string printMap() {
-    unordered_map<int, tuple<int, char>>::iterator it = m.begin();
+    map<int, tuple<int, char>>::iterator it = m.begin();
     cout << endl;
     string str;
+
     while (it != m.end()) {
-        str += std::to_string(it->first) + "=" +
-        std::to_string(get<0>(it->second)) + "," +
+        str += std::to_string(it->first) + equals +
+        std::to_string(get<0>(it->second)) + comma +
         get<1>(it->second);
         ++it;
     }
     return str;
 }
 
-void decompress() {
-    unordered_map<int, tuple<int, char>>::iterator it = m.begin();
-    string decompressed;
-    while (it != m.end()) {
-        decompressed += followPath(it->first);
-        ++it;
+void decompress(string fileName) {
+    m = map<int, tuple<int, char>>();
+    ifstream f(fileName);
+    if (!f.is_open()) {
+        cout << "Error opening file" << endl;
+        return;
     }
+    ofstream outF(fileNameWithoutExtension(fileName) + ".txt");
+    char ch;
+    string str;
+    string index;
+    string pathIndex;
+    int getting = 0; // 0 for index, 1 for path index, 2 for character
+    while (f.get(ch)) {
+        if (getting == 0) {
+            if (ch == equals) {
+                getting = 1;
+            }
+            else {
+                index += ch;
+            }
+        }
+        else if (getting == 1) {
+            if (ch == comma) {
+                getting = 2;
+            }
+            else {
+                pathIndex += ch;
+            }
+        }
+        else {
+            int indexInt = stoi(index);
+            m.insert({indexInt, make_tuple(stoi(pathIndex), ch)});
+            outF << followPath(indexInt);
+            getting = 0;
+            pathIndex = "";
+            index = "";
+        }
+        // cout << ch;
+    }
+    // unordered_map<int, tuple<int, char>>::iterator it = m.begin();
+    // string decompressed;
+    // while (it != m.end()) {
+    //     decompressed += followPath(it->first);
+    //     ++it;
+    // }
     // cout << decompressed;
 }
